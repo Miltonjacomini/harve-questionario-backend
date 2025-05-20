@@ -2,7 +2,7 @@ const { pool } = require('../config/database');
 const fs = require('fs');
 const path = require('path');
 
-// Função que roda o script da /scripts/init-db.sql
+// Function to run SQL script
 async function executeSqlScript(connection, filePath) {
   try {
     const script = fs.readFileSync(filePath, 'utf8');
@@ -20,14 +20,14 @@ async function executeSqlScript(connection, filePath) {
   }
 }
 
-// Função que inicia a conexão com o banco de dados
+// Initialize database connection
 async function initializeDatabase() {
   try {
-    // Testa a conexão com o banco de dados
+    // Test the connection
     const connection = await pool.getConnection();
     console.log('MySQL database connected successfully');
     
-    // Testa se o banco de dados tem as tabelas necessárias
+    // Test if the database has the required tables
     try {
       await connection.query('SELECT 1 FROM usuarios LIMIT 1');
       await connection.query('SELECT 1 FROM perguntas LIMIT 1');
@@ -38,7 +38,7 @@ async function initializeDatabase() {
       console.warn('Some tables may not exist:', tableError.message);
       console.log('Attempting to create tables from init-db.sql...');
       
-      // Executa o script de inicialização
+      // Run the initialization script
       const scriptPath = path.join(__dirname, '../scripts/init-db.sql');
       await executeSqlScript(connection, scriptPath);
     }
@@ -81,20 +81,20 @@ async function getUsuarioById(id) {
 // Perguntas repository functions
 async function getAllPerguntas() {
   try {
-    // Pega todas as perguntas
+    // Get all perguntas
     console.log('Executing query to get all perguntas');
     const [perguntas] = await pool.execute(
-      'SELECT ....'
+      'SELECT id_pergunta, titulo, ordem, ativo, createdAt, updatedAt FROM perguntas WHERE ativo = true ORDER BY ordem'
     );
     
     console.log(`Found ${perguntas.length} perguntas:`, perguntas);
     
-    // For para cada pergunta, pega suas alternativas
+    // For each pergunta, get its alternativas
     for (const pergunta of perguntas) {
       if (pergunta.id_pergunta) {
         console.log(`Getting alternativas for pergunta ${pergunta.id_pergunta}`);
         const [alternativas] = await pool.execute(
-          'SELECT ....',
+          'SELECT id_alternativa, descricao, id_pergunta, ordem, pontos, ativo, createdAt, updatedAt FROM alternativas WHERE id_pergunta = ? AND ativo = true ORDER BY ordem',
           [pergunta.id_pergunta]
         );
         console.log(`Found ${alternativas.length} alternativas for pergunta ${pergunta.id_pergunta}`);
@@ -117,7 +117,7 @@ async function createResposta(idUsuario, idAlternativa) {
   try {
     // First get the pontos from the alternativa
     const [alternativas] = await pool.execute(
-      'SELECT ....',
+      'SELECT pontos FROM alternativas WHERE id_alternativa = ?',
       [idAlternativa]
     );
     
@@ -129,7 +129,7 @@ async function createResposta(idUsuario, idAlternativa) {
     
     // Insert the resposta
     const [result] = await pool.execute(
-      'INSERT INTO ....',
+      'INSERT INTO respostas (id_usuario, id_alternativa, pontos) VALUES (?, ?, ?)',
       [idUsuario, idAlternativa, pontos]
     );
     
@@ -143,10 +143,10 @@ async function createResposta(idUsuario, idAlternativa) {
 async function getRespostasByUsuario(idUsuario) {
   try {
     const [respostas] = await pool.execute(
-      `SELECT ....
+      `SELECT r.*, a.descricao, p.titulo 
        FROM respostas r
-       JOIN ....
-       JOIN .....
+       JOIN alternativas a ON r.id_alternativa = a.id_alternativa
+       JOIN perguntas p ON a.id_pergunta = p.id_pergunta
        WHERE r.id_usuario = ?`,
       [idUsuario]
     );
@@ -161,7 +161,7 @@ async function getRespostasByUsuario(idUsuario) {
 async function getTotalPontosByUsuario(idUsuario) {
   try {
     const [result] = await pool.execute(
-      'SELECT ....',
+      'SELECT SUM(pontos) as totalPontos FROM respostas WHERE id_usuario = ?',
       [idUsuario]
     );
     

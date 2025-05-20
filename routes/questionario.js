@@ -48,7 +48,7 @@ router.post("/iniciar-teste", async (req, res) => {
 router.get("/questionario", async (req, res) => {
     console.log('Received request to get questionario');
     try {
-        //TODO: Buscar perguntas e alternativas do banco de dados
+        const perguntas = await getAllPerguntas();
         console.log(`Found ${perguntas.length} perguntas`);
         res.json({ nome: "Questionário A", perguntas });
     } catch (error) {
@@ -69,7 +69,7 @@ router.post("/resposta", async (req, res) => {
     
     try {
         // Verifica se o usuário existe
-        //TODO: Buscar usuário do banco de dados
+        const usuario = await getUsuarioById(idUsuario);
         console.log('Usuario found:', usuario);
         
         if (!usuario) {
@@ -78,11 +78,11 @@ router.post("/resposta", async (req, res) => {
         }
         
         // Registra a resposta
-        //TODO: Criar resposta no banco de dados
+        const resposta = await createResposta(idUsuario, idAlternativa);
         console.log('Resposta created:', resposta);
         
         // Calcula o total de pontos do usuário
-        //TODO: Buscar total de pontos do usuário no banco de dados
+        const totalPoints = await getTotalPontosByUsuario(idUsuario);
         console.log(`Total points for usuario ${idUsuario}: ${totalPoints}`);
         
         res.json({ nome: usuario.nome, pontos: totalPoints });
@@ -94,7 +94,7 @@ router.post("/resposta", async (req, res) => {
 
 // Route para enviar email
 router.post("/questionario/:id/enviar-email", async (req, res) => {
-    //TODO: Implementar lógica para enviar email caso seja necessário
+    // Implementar lógica para enviar email caso seja necessário
     res.send("Email enviado!");
 });
 
